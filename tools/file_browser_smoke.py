@@ -131,6 +131,8 @@ def main():
                     page.get_by_role("button", name="保存资料版本", exact=True).click()
                     expect(materials).to_have_count(3)
                     expect(materials.filter(has_text="合成测试交接说明")).to_have_attribute("data-material-type", "text")
+                    page.locator("#source-parent").select_option(index=1)
+                    chosen_source = page.locator("#source-parent").input_value()
                     page.get_by_role("button", name="上传文件", exact=True).click()
                     uploaded = []
                     for index, (filename, mime_type, data) in enumerate(upload_payloads(), 3):
@@ -156,6 +158,9 @@ def main():
                         assert ledger.file_bytes(metadata["id"])[1] == data
                         card.get_by_role("button", name="查看提取片段", exact=True).click()
                         expect(card.locator("pre")).to_be_visible()
+                    page.get_by_role("button", name="记录文字", exact=True).click()
+                    expect(page.locator("#source-parent")).to_have_value(chosen_source)
+                    page.get_by_text("添加资料", exact=True).click()
                     assert_no_overflow(page, "desktop files")
                     page.screenshot(path=str(args.output_dir / "files-desktop.png"), full_page=True)
 

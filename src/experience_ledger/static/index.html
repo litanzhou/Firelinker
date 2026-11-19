@@ -39,7 +39,6 @@
         <div class="steps" role="tablist" aria-label="案例内容"><button data-tab="materials" class="step active" role="tab" aria-selected="true">案例资料</button><button data-tab="interview" class="step" role="tab" aria-selected="false">判断与访谈</button><button data-tab="review" class="step" role="tab" aria-selected="false">经验审核</button></div>
         <section id="tab-materials" class="tab-panel" role="tabpanel">
           <div class="panel-heading"><h2>资料与版本</h2><span class="hint">引用保留原文的版本号。</span></div>
-          <div id="materials-list"></div>
           <details id="add-material" class="editor-block">
             <summary>添加资料</summary>
             <div id="material-methods" class="button-row">
@@ -58,6 +57,7 @@
               <button class="primary" type="submit">保存资料版本</button>
             </form>
           </details>
+          <div id="materials-list"></div>
         </section>
         <section id="tab-interview" class="tab-panel" role="tabpanel" hidden>
           <div class="panel-heading"><h2>判断与待问问题</h2><span class="hint">每次追问单独保存。</span></div>
