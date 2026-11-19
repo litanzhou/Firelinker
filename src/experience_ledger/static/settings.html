@@ -42,7 +42,7 @@
             <option value="responses">Responses</option>
           </select></label>
           <label>原生文件输入格式<input name="input_types" placeholder="text,pdf,docx,xlsx,png,jpeg,webp" spellcheck="false"></label>
-          <p class="hint">默认只发送文本。发送原件需选择 Responses，并填写该模型和服务实际支持的格式，用逗号分隔。PPT、PPTX 也按实际支持情况填写。</p>
+          <p class="hint">默认只发送文本。发送原件需选择 Responses，并填写该模型和服务实际支持的格式，用逗号分隔。确认接口能读演示文稿后，再填写 ppt 或 pptx。</p>
           <div class="two-columns">
             <label>上下文预算（字符）<input type="number" name="context_chars" min="1000" max="2000000" step="1" required></label>
             <label>最大输出 token<input type="number" name="max_output_tokens" min="100" max="32000" step="1" required></label>

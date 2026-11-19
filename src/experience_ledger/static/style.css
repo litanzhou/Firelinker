@@ -8,3 +8,4 @@
 .settings-link.active { text-decoration: underline; }
 #material-methods { margin-top: 16px; }
 #material-methods button[aria-pressed="true"] { background: var(--accent-soft); border-color: var(--accent); }
+#materials-list { margin-top: 16px; }

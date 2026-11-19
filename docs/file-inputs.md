@@ -81,6 +81,6 @@ PDF 视觉引用需在页码之外提供 `bbox`，单位为页面坐标点，相
 
 - [OpenAI File inputs](https://developers.openai.com/api/docs/guides/file-inputs)：Responses 文件类型、`input_file` 与 Base64 文件内容；非 PDF 文档和表格有各自提取范围。
 - [OpenAI Images and vision](https://developers.openai.com/api/docs/guides/images-vision)：`input_image` 与图片 Data URL。
-- [Microsoft PresentationML 文本提取](https://learn.microsoft.com/en-us/office/open-xml/presentation/how-to-get-all-the-text-in-all-slides-in-a-presentation)：根据演示稿关系定位幻灯片并读取文字。
+- 根据演示稿关系定位幻灯片并读取文字。[Microsoft PresentationML 文本提取](https://learn.microsoft.com/en-us/office/open-xml/presentation/how-to-get-all-the-text-in-all-slides-in-a-presentation)
 
 这些来源说明所实现的协议格式；具体端点与模型能力仍由部署者确认。可选本地解析依赖许可原文见 [文件依赖许可记录](FILE_DEPENDENCY_NOTICES.md)。

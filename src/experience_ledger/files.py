@@ -141,7 +141,7 @@ def _extract(filename, data):
     anchors, warnings = [], []
     if extension in (".doc", ".xls", ".ppt"):
         legacy = extension[1:].upper()
-        return "unsupported", [], [f"旧 {legacy} 原件已保存；本地解析不支持，请另存 {legacy}X 或配置支持的原生输入。"]
+        return "unsupported", [], [f"已保存旧版 {legacy} 原件。本地解析不支持该格式，可以另存为 {legacy}X 或配置支持此格式的模型。"]
     if extension in (".txt", ".md"):
         anchors = [{"locator": {"kind": "text"}, "text": data.decode("utf-8-sig")}]
         parser = "utf8:v1"
