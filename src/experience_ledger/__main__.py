@@ -16,6 +16,7 @@ def main():
         action.add_argument("--domains-dir", type=Path)
         if command == "serve":
             action.add_argument("--port", type=int, default=5057)
+            action.add_argument("--open-browser", action="store_true", help="启动后打开工作台")
         elif command == "export":
             action.add_argument("--case-id", required=True)
             action.add_argument("--output", type=Path, required=True)
@@ -37,7 +38,20 @@ def main():
             print(f"评测记录已保存到 {args.output.resolve()}；语义质量需按报告逐项人工评阅。")
         elif args.command == "serve":
             from .web import create_app
-            create_app(args.data_dir, args.domains_dir).run(host="127.0.0.1", port=args.port, debug=False)
+            app = create_app(args.data_dir, args.domains_dir)
+            if args.open_browser:
+                from threading import Thread
+                import webbrowser
+
+                from werkzeug.serving import make_server
+
+                with make_server("127.0.0.1", args.port, app, threaded=True) as server:
+                    url = f"http://127.0.0.1:{server.server_port}/"
+                    print(f"Firelinker: {url}\nKeep this window open. Press Ctrl+C to stop.", flush=True)
+                    Thread(target=webbrowser.open, args=(url,), daemon=True).start()
+                    server.serve_forever()
+            else:
+                app.run(host="127.0.0.1", port=args.port, debug=False)
         else:
             ledger = Ledger(args.data_dir, args.domains_dir)
             if args.command == "demo":

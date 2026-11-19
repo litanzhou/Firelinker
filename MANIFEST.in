@@ -1,4 +1,4 @@
 include CONTEXT.md PROJECT_STATE.md SOURCE_INDEX.md CONTRIBUTING.md requirements-lock.txt
-include .env.example .gitignore
+include .env.example .gitignore start-firelinker.cmd start_firelinker.py
 recursive-include docs *.md *.png
 recursive-include tools *.py
