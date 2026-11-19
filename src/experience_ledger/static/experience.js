@@ -10,7 +10,8 @@ async function api(path,method="GET",data){const options={method,headers:{Accept
 async function task(action){if(busy)return;busy=true;$("#revision-select").disabled=true;document.querySelectorAll("button").forEach(b=>b.disabled=true);try{await action();}catch(e){notice(e.message,true);}finally{busy=false;$("#revision-select").disabled=false;document.querySelectorAll("button").forEach(b=>b.disabled=false);}}
 function fields(form){return Object.fromEntries(new FormData(form));}
 function revisionLink(id,revision,label){const a=element("a",label);a.href=`/experience/${encodeURIComponent(id)}?revision=${revision}`;return a;}
-function quoteText(cite){return cite.quote || (cite.locator?JSON.stringify(cite.locator):"查看原始资料区域");}
+function locatorText(locator){return locator.kind==="slide"?`第 ${locator.slide} 张幻灯片`:JSON.stringify(locator);}
+function quoteText(cite){return cite.quote || (cite.locator?locatorText(cite.locator):"查看原始资料区域");}
 async function openRevision(revision){
  const latest=await api(`/api/candidates/${experienceId}`);const selected=revision||latest.active_revision||latest.revision;
  currentExperience=selected===latest.revision?latest:await api(`/api/candidates/${experienceId}?revision=${selected}`);
@@ -29,7 +30,7 @@ async function openRevision(revision){
  const labels=new Map(Object.entries(fallback));
  if(item.structured) for(const field of item.content_schema) labels.set(field.key,field.label);
  for(const field of values){const article=element("article");article.append(element("h3",labels.get(field.key)||field.key),element("p",field.text));if(field.status)article.append(element("small",{supported:"已有原话依据",unknown:"尚未说明",hypothesis:"待检验假设"}[field.status],"content-status"));content.append(article);}
- const evidence=$("#experience-evidence");evidence.replaceChildren();for(const cite of item.evidence||[]){const block=element("div",null,"evidence-row");block.append(element("strong",`${labels.get(cite.field)||cite.field} · ${cite.source_title}`),element("blockquote",quoteText(cite)));if(cite.locator)block.append(element("small",JSON.stringify(cite.locator)));evidence.append(block);}if(!item.evidence?.length)evidence.append(element("p","本版暂无引文。","empty-note"));
+ const evidence=$("#experience-evidence");evidence.replaceChildren();for(const cite of item.evidence||[]){const block=element("div",null,"evidence-row");block.append(element("strong",`${labels.get(cite.field)||cite.field} · ${cite.source_title}`),element("blockquote",quoteText(cite)));if(cite.locator)block.append(element("small",locatorText(cite.locator)));evidence.append(block);}if(!item.evidence?.length)evidence.append(element("p","本版暂无引文。","empty-note"));
  $("#withdraw-panel").hidden=!item.active_revision;$("#feedback-panel").hidden=!approved;
  await renderRelations();await renderFeedback();$("#comparison").hidden=true;
 }

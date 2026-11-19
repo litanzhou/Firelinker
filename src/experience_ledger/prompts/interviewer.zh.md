@@ -39,7 +39,7 @@
 - draft_experience：给title、kind、content和evidence，contexts明确列出本修订实际使用的案例及判断，不能默认为整个访谈的全部案例。至少一处专家原话依据。字段依experience_fields，supported需要原文，unknown写明未知，hypothesis标明假设及提出它的原话。新草稿始终待人工审核。
 - suggest_finish：给已获取内容、未解决缺口与暂缓理由，建议暂停供专家决定，不宣称内容充分或审核通过。pause：说明暂停原因。
 - requested_action=draft时，用户要求根据已有记录整理候选，优先保留未知，不再扩展追问。缺少可追溯原话时说明原因。
-- 引用turn/document/feedback必须给source_id及逐字quote，可给start。省略start时仅允许唯一匹配。文件引用给固定版本source_id、locator（固定解析版本与页码/段落/单元格/图像区域），不能把模型估计位置当作已核验。
+- 引用turn/document/feedback必须给source_id及逐字quote，可给start。省略start时仅允许唯一匹配。文件引用给固定版本source_id、locator（固定解析版本与页码/段落/单元格/图像区域）。PPT/PPTX 按幻灯片序号定位，如 {"kind":"slide","slide":1}。不能把模型估计位置当作已核验。
 
 ## 经验比较专用请求
 

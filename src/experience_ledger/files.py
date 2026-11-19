@@ -10,17 +10,23 @@ from io import BytesIO
 import json
 import math
 from pathlib import Path
+from posixpath import normpath
 import re
+from urllib.parse import unquote
+from xml.etree import ElementTree
 from zipfile import ZipFile, BadZipFile
 
 
 MAX_FILE_BYTES = 25 * 1024 * 1024
 MAX_PARSE_CHARS = 2_000_000
 MAX_ANCHORS = 20_000
+MAX_PPTX_XML_BYTES = 8 * 1024 * 1024
 MIME_TYPES = {
     ".txt": "text/plain", ".md": "text/markdown", ".pdf": "application/pdf",
     ".docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
     ".xlsx": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    ".ppt": "application/vnd.ms-powerpoint",
+    ".pptx": "application/vnd.openxmlformats-officedocument.presentationml.presentation",
     ".doc": "application/msword", ".xls": "application/vnd.ms-excel",
     ".png": "image/png", ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".webp": "image/webp",
 }
@@ -38,7 +44,7 @@ def _safe_name(filename):
     if not filename or len(filename) > 255 or any(ord(c) < 32 for c in filename):
         raise _error("文件名无效")
     if Path(filename).suffix.lower() not in MIME_TYPES:
-        raise _error("支持 TXT、Markdown、PDF、DOCX、XLSX、PNG、JPEG、WEBP；旧 DOC/XLS 可保存原件")
+        raise _error("支持 TXT、Markdown、PDF、DOCX、XLSX、PPTX、PNG、JPEG、WEBP；旧 DOC、XLS、PPT 可保存原件")
     return filename
 
 
@@ -51,12 +57,91 @@ def _check_archive(data, required):
             raise _error("文件内容与扩展名不符")
 
 
+class _PresentationXmlTree(ElementTree.TreeBuilder):
+    def doctype(self, name, pubid, system):
+        raise _error("PPTX 的 XML 不允许包含文档类型声明")
+
+
+def _presentation_xml(archive, name):
+    try:
+        part = archive.getinfo(name)
+    except KeyError:
+        raise _error("PPTX 缺少演示文稿或幻灯片部件") from None
+    if part.file_size > MAX_PPTX_XML_BYTES:
+        raise _error("PPTX 的 XML 部件超过本地解析限制")
+    try:
+        return ElementTree.fromstring(archive.read(part), parser=ElementTree.XMLParser(target=_PresentationXmlTree()))
+    except ElementTree.ParseError:
+        raise _error("PPTX 的演示文稿或幻灯片 XML 无法解析") from None
+
+
+def _pptx_anchors(data):
+    # Slides follow the presentation's relationship order, not ZIP entry names.
+    part_name = "ppt/presentation.xml"
+    _check_archive(data, part_name)
+    with ZipFile(BytesIO(data)) as archive:
+        if len(set(archive.namelist())) != len(archive.infolist()):
+            raise _error("PPTX 存在重名的文档部件")
+        presentation = _presentation_xml(archive, part_name)
+        namespaces = (
+            ("http://schemas.openxmlformats.org/presentationml/2006/main",
+             "http://schemas.openxmlformats.org/drawingml/2006/main",
+             "http://schemas.openxmlformats.org/officeDocument/2006/relationships"),
+            ("http://purl.oclc.org/ooxml/presentationml/main",
+             "http://purl.oclc.org/ooxml/drawingml/main",
+             "http://purl.oclc.org/ooxml/officeDocument/relationships"),
+        )
+        for presentation_ns, drawing_ns, relationship_ns in namespaces:
+            p, a, r = ("{" + ns + "}" for ns in (presentation_ns, drawing_ns, relationship_ns))
+            if presentation.tag == p + "presentation":
+                break
+        else:
+            raise _error("PPTX 的演示文稿格式无效")
+
+        slide_ids = presentation.findall(f"{p}sldIdLst/{p}sldId")
+        if not slide_ids:
+            raise _error("PPTX 没有可读取的幻灯片")
+        if len(slide_ids) > MAX_ANCHORS:
+            raise _error("PPTX 的幻灯片数超过本地解析限制")
+        relationships = _presentation_xml(archive, "ppt/_rels/presentation.xml.rels")
+        slide_type = relationship_ns + "/slide"
+        targets = {}
+        for relation in relationships:
+            if relation.get("Type") != slide_type or relation.get("TargetMode", "Internal") != "Internal":
+                continue
+            relation_id = relation.get("Id")
+            if not relation_id or relation_id in targets:
+                raise _error("PPTX 的幻灯片关系无效")
+            targets[relation_id] = relation.get("Target", "")
+        anchors, visited = [], set()
+        chars = 0
+        for slide_number, slide_id in enumerate(slide_ids, 1):
+            target = unquote(targets.get(slide_id.get(r + "id"), ""))
+            path = normpath(target.lstrip("/") if target.startswith("/") else "ppt/" + target)
+            if not path.startswith("ppt/") or not path.endswith(".xml") or path in visited:
+                raise _error("PPTX 的幻灯片关系无效")
+            visited.add(path)
+            slide = _presentation_xml(archive, path)
+            if slide.tag != p + "sld":
+                raise _error("PPTX 的幻灯片格式无效")
+            paragraphs = ["".join((element.text or "") if element.tag == a + "t" else "\n"
+                                  for element in paragraph.iter() if element.tag in (a + "t", a + "br"))
+                          for paragraph in slide.iter(a + "p")]
+            text = "\n".join(line for line in paragraphs if line)
+            chars += len(text)
+            if chars > MAX_PARSE_CHARS:
+                raise _error("PPTX 提取内容超过本地解析限制，原件仍保留")
+            anchors.append({"locator": {"kind": "slide", "slide": slide_number}, "text": text})
+    return anchors
+
+
 def _extract(filename, data):
     """Return (parser identity, stable anchors, explicit extraction limitations)."""
     extension = Path(filename).suffix.lower()
     anchors, warnings = [], []
-    if extension in (".doc", ".xls"):
-        return "unsupported", [], ["旧 DOC/XLS 原件已保存；本地解析不支持，请另存 DOCX/XLSX 或配置支持的原生输入。"]
+    if extension in (".doc", ".xls", ".ppt"):
+        legacy = extension[1:].upper()
+        return "unsupported", [], [f"旧 {legacy} 原件已保存；本地解析不支持，请另存 {legacy}X 或配置支持的原生输入。"]
     if extension in (".txt", ".md"):
         anchors = [{"locator": {"kind": "text"}, "text": data.decode("utf-8-sig")}]
         parser = "utf8:v1"
@@ -105,6 +190,9 @@ def _extract(filename, data):
         finally:
             book.close()
         warnings.append("单元格保留值或公式原文；本地解析不计算公式，不提取图表或嵌入图片。")
+    elif extension == ".pptx":
+        parser, anchors = "presentationml:v1", _pptx_anchors(data)
+        warnings.append("按幻灯片顺序提取正文和表格文字。备注、版式、图形和嵌入图片请对照原件。")
     else:
         from PIL import Image
         parser = "Pillow:" + package_version("Pillow")
@@ -261,10 +349,10 @@ class FileMixin:
         if not isinstance(locator, dict):
             raise _error("文件位置必须是对象")
         target = {k: v for k, v in locator.items() if k not in ("parse_id", "bbox", "verification", "manual_check_id")}
-        if not target or any(k not in ("kind", "page", "paragraph", "table", "row", "column", "sheet", "range") for k in target):
+        if not target or any(k not in ("kind", "page", "slide", "paragraph", "table", "row", "column", "sheet", "range") for k in target):
             raise _error("文件位置包含无效字段")
-        for key in ("page", "paragraph", "table", "row", "column"):
-            if key in target and (type(target[key]) is not int or target[key] < (1 if key == "page" else 0)):
+        for key in ("page", "slide", "paragraph", "table", "row", "column"):
+            if key in target and (type(target[key]) is not int or target[key] < (1 if key in ("page", "slide") else 0)):
                 raise _error("文件位置序号无效")
         if "sheet" in target and (not isinstance(target["sheet"], str) or not target["sheet"]):
             raise _error("工作表名称无效")
@@ -364,22 +452,27 @@ class FileMixin:
     def _basic_file_reference(self, record, item):
         locator = item.get("locator")
         if not isinstance(locator, dict):
-            raise _error("文件引用必须提供页码、段落、单元格或图片区域位置")
+            raise _error("文件引用必须提供页码、幻灯片、段落、单元格或图片区域位置")
         # Verification claims belong to the store, not the caller or model.
         base = {k: v for k, v in locator.items() if k not in ("verification", "manual_check_id")}
-        allowed = {"kind", "parse_id", "page", "paragraph", "table", "row", "column", "sheet", "range", "bbox"}
+        allowed = {"kind", "parse_id", "page", "slide", "paragraph", "table", "row", "column", "sheet", "range", "bbox"}
         if set(base) - allowed:
             raise _error("文件位置包含无效字段")
         if "parse_id" in base and (not isinstance(base["parse_id"], str) or not base["parse_id"]):
             raise _error("文件解析版本 ID 无效")
         extension = Path(record["filename"]).suffix.lower()
         expected = "text" if extension in (".txt", ".md") else "pdf" if extension == ".pdf" else "docx" if extension in (".doc", ".docx") else "xlsx" if extension in (".xls", ".xlsx") else "image"
+        if extension in (".ppt", ".pptx"):
+            expected = "slide"
         if base.get("kind") != expected:
             raise _error("引用位置类型与原件格式不符")
         position_keys = set(base) - {"kind", "parse_id", "bbox"}
         if expected == "pdf":
             if position_keys != {"page"} or type(base["page"]) is not int or base["page"] < 1:
                 raise _error("PDF 页码须为正整数")
+        elif expected == "slide":
+            if position_keys != {"slide"} or type(base["slide"]) is not int or base["slide"] < 1:
+                raise _error("幻灯片序号须为正整数")
         elif expected == "docx":
             if position_keys not in ({"paragraph"}, {"table", "row", "column"}) or any(type(base[k]) is not int or base[k] < 0 for k in position_keys):
                 raise _error("Word 引用须指定非负段落序号或表格/行/列序号")
@@ -432,7 +525,7 @@ class FileMixin:
     def _validate_file_reference(self, db, item, allowed_case_ids):
         locator = item.get("locator")
         if not isinstance(locator, dict):
-            raise _error("文件引用必须提供页码、段落、单元格或图片区域位置")
+            raise _error("文件引用必须提供页码、幻灯片、段落、单元格或图片区域位置")
         record = self._file(db, item.get("source_id"), locator.get("parse_id"))
         if record["case_id"] not in allowed_case_ids:
             raise _error("文件不属于本次经验明确关联的案例")

@@ -93,6 +93,39 @@ def test_capability_and_byte_budgets_reject_before_network():
             planner.close()
 
 
+@pytest.mark.parametrize(("extension", "mime_type"), [
+    ("ppt", "application/vnd.ms-powerpoint"),
+    ("pptx", "application/vnd.openxmlformats-officedocument.presentationml.presentation"),
+])
+def test_responses_only_sends_presentation_originals_when_explicitly_declared(extension, mime_type):
+    filename, original = f"briefing.{extension}", b"synthetic presentation"
+    transmitted = []
+
+    def handler(request):
+        parts = json.loads(request.content)["input"][0]["content"]
+        native = next(part for part in parts if part["type"] == "input_file")
+        assert native["filename"] == filename
+        prefix, payload = native["file_data"].split(",", 1)
+        assert prefix == f"data:{mime_type};base64"
+        assert base64.b64decode(payload) == original
+        transmitted.append(native)
+        return httpx.Response(200, json=response_body())
+
+    context = {"last_tool": {"results": [{"attachment": {"source_id": "slide-deck-version"}}]}}
+    for types in (("text",), ("text", extension)):
+        planner = planner_with_transport(handler, input_types=types)
+        planner.bind_file_loader(lambda _: {"filename": filename, "mime_type": mime_type, "data": original})
+        try:
+            if len(types) == 1:
+                with pytest.raises(PlannerError, match="尚未声明"):
+                    planner.propose(context)
+            else:
+                assert planner.propose(context).action["action"] == "pause"
+        finally:
+            planner.close()
+    assert len(transmitted) == 1
+
+
 def test_raw_expert_text_does_not_become_an_attachment_instruction():
     def handler(request):
         payload = json.loads(request.content)

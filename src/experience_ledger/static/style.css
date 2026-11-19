@@ -6,3 +6,5 @@
 .workspace-tools { display: flex; align-items: center; justify-content: flex-end; gap: 20px; }
 .settings-link { font-size: 13px; text-decoration: none; text-underline-offset: 6px; white-space: nowrap; }
 .settings-link.active { text-decoration: underline; }
+#material-methods { margin-top: 16px; }
+#material-methods button[aria-pressed="true"] { background: var(--accent-soft); border-color: var(--accent); }

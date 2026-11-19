@@ -39,14 +39,22 @@
         <div class="steps" role="tablist" aria-label="案例内容"><button data-tab="materials" class="step active" role="tab" aria-selected="true">案例资料</button><button data-tab="interview" class="step" role="tab" aria-selected="false">判断与访谈</button><button data-tab="review" class="step" role="tab" aria-selected="false">经验审核</button></div>
         <section id="tab-materials" class="tab-panel" role="tabpanel">
           <div class="panel-heading"><h2>资料与版本</h2><span class="hint">引用保留原文的版本号。</span></div>
-          <div id="source-list"></div>
-          <div id="file-list"></div>
-          <details class="editor-block"><summary>上传 PDF、Word、Excel 或图片原件</summary><form id="file-form"><label>原始文件<input name="file" type="file" required accept=".txt,.md,.pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg,.webp"></label><label>文件版本归属<select name="file_id" id="file-parent"><option value="">作为新文件</option></select></label><p class="hint">能否提取文字取决于本地解析工具。旧版 DOC、XLS 仅保存原件。模型能读取的格式取决于当前配置。</p><button type="submit" class="primary">保存文件原件</button></form></details>
-          <details class="editor-block" open><summary>加入资料</summary>
-            <form id="source-form">
+          <div id="materials-list"></div>
+          <details id="add-material" class="editor-block">
+            <summary>添加资料</summary>
+            <div id="material-methods" class="button-row">
+              <button type="button" class="secondary" aria-pressed="true" aria-controls="file-form">上传文件</button>
+              <button type="button" class="secondary" aria-pressed="false" aria-controls="source-form">记录文字</button>
+            </div>
+            <form id="file-form">
+              <label>原始文件<input name="file" type="file" required accept=".txt,.md,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.png,.jpg,.jpeg,.webp"></label>
+              <label>文件版本归属<select name="file_id" id="file-parent"><option value="">作为新文件</option></select></label>
+              <p class="hint">支持 PDF、Word、Excel、PPT、TXT、Markdown 和图片。旧版 DOC、XLS、PPT 本地仅保存原件。原件能否交给模型读取取决于当前配置。</p>
+              <button type="submit" class="primary">保存文件原件</button>
+            </form>
+            <form id="source-form" hidden>
               <div class="two-columns"><label>资料名称<input name="title" required placeholder="例如，现场检查记录"></label><label>版本归属<select name="source_id" id="source-parent"><option value="">作为新资料</option></select></label></div>
-              <label>导入 UTF-8 文件<input id="source-file" type="file" accept=".txt,.md,text/plain,text/markdown"></label>
-              <label>资料原文<textarea name="text" id="source-text" required rows="7" placeholder="粘贴文字，或导入 TXT / Markdown 文件"></textarea></label>
+              <label>资料原文<textarea name="text" id="source-text" required rows="7" placeholder="写下或粘贴要保存的文字"></textarea></label>
               <button class="primary" type="submit">保存资料版本</button>
             </form>
           </details>

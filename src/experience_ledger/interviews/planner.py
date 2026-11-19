@@ -38,7 +38,7 @@ class ModelCapabilities:
     max_attachment_bytes: int = 25 * 1024 * 1024
 
     def __post_init__(self):
-        known = {"text", "txt", "md", "pdf", "doc", "docx", "xls", "xlsx", "png", "jpg", "jpeg", "webp"}
+        known = {"text", "txt", "md", "pdf", "doc", "docx", "xls", "xlsx", "ppt", "pptx", "png", "jpg", "jpeg", "webp"}
         if type(self.structured_actions) is not bool or not self.structured_actions:
             raise PlannerError("访谈规划器需要结构化动作能力；请选择支持该契约的模型，不会自动替换型号")
         if not isinstance(self.input_types, tuple) or not self.input_types or any(t not in known for t in self.input_types):

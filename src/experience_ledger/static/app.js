@@ -62,42 +62,99 @@ function renderCaseList() {
 async function refreshCases() { state.cases = await api("/api/cases"); renderCaseList(); }
 async function openCase(id, keepSelection = false) {
   const current = await api(`/api/cases/${encodeURIComponent(id)}`);
+  if (state.current?.id !== id) {
+    $("#add-material").open = false;
+    $("#source-form").reset();
+    $("#file-form").reset();
+    $("#materials-list").replaceChildren();
+    setMaterialMethod("file-form");
+  }
   state.current = current; rememberCase(id);
   if (!keepSelection) { state.decision = null; state.gap = null; state.candidate = null; state.dirty = false; }
   $("#empty-case").hidden = true; $("#case-detail").hidden = false; $("#new-case-details").open = false;
   $("#case-title").textContent = current.title; $("#case-context").textContent = current.context;
   const domain = current.domain || state.domains.find(item => item.id === current.domain_id);
   $("#case-domain-label").textContent = domain?.name || current.domain_id;
-  $("#case-counts").textContent = `${current.sources.length} 个资料版本 · ${current.turns.length} 轮记录`;
-  renderCaseList(); renderSources(); await renderFiles(); renderDecisions(); renderCandidates(); renderEvents();
+  renderCaseList(); await renderMaterials();
+  if (state.current !== current) return;
+  renderDecisions(); renderCandidates(); renderEvents();
   if (keepSelection && state.decision) openDecision(state.decision.id, state.gap?.id);
   else if (current.decisions.length) openDecision(current.decisions[0].id);
   else $("#interview-detail").hidden = true;
   if (keepSelection && state.candidate) { if (!state.dirty) await openCandidate(state.candidate.id); }
   else $("#candidate-detail").hidden = true;
 }
-async function renderFiles() {
-  const list=$("#file-list");list.replaceChildren();const parent=$("#file-parent");parent.replaceChildren();pickOption(parent,"","作为新文件");const logical=new Map();
-  for(const file of await api(`/api/cases/${state.current.id}/files`)){
-    logical.set(file.file_id,file.filename);const card=node("details",null,"source-card");const summary=node("summary");summary.append(node("span",file.filename),node("span",`原件 v${file.version}`,"pill"));const download=node("a","下载原件 →","text-button");download.href=`/api/files/${file.id}/download`;
-    card.append(summary,node("p",`${file.size} 字节 · SHA-256 ${file.sha256}`,"source-meta"),download,node("p",`本地解析：${{ready:"可读取",not_requested:"未请求",unsupported:"当前不支持",unavailable:"缺少可选解析依赖",failed:"解析失败"}[file.parse_status]||file.parse_status}${file.parse_error?` · ${file.parse_error}`:""}`,"hint"));
-    const parse=node("button","提取或重新提取可定位片段","secondary");parse.type="button";parse.addEventListener("click",()=>run(async()=>{await api(`/api/files/${file.id}/parse`,"POST",{});await renderFiles();},parse));card.append(parse);
-    const preview=node("button","查看提取片段","text-button");preview.type="button";preview.addEventListener("click",()=>run(async()=>{const metadata=await api(`/api/files/${file.id}`);const output=node("pre",metadata.anchors.map(a=>`${JSON.stringify(a.locator)}\n${a.text||"图片区域需人工查看原件"}`).join("\n\n"));card.append(output);preview.remove();},preview));card.append(preview);list.append(card);
-  }
-  for(const [id,name] of logical)pickOption(parent,id,`${name} · 增加版本`);
+function locatorLabel(locator) {
+  return locator.kind === "slide" ? `第 ${locator.slide} 张幻灯片` : JSON.stringify(locator);
 }
-function renderSources() {
-  const list = $("#source-list"); list.replaceChildren();
-  const select = $("#source-parent"); select.replaceChildren(); pickOption(select, "", "作为新资料");
-  const logicalSources = new Map();
-  for (const source of state.current.sources) {
-    const card = node("details", null, "source-card");
-    const heading = node("summary"); heading.append(node("span", source.title), node("span", `版本 ${source.version}`, "pill"));
-    card.append(heading, node("div", `${stamp(source.created_at)} · SHA-256 ${source.sha256}`, "source-meta"), node("pre", source.text)); list.append(card);
-    logicalSources.set(source.source_id, source.title);
+function fileMaterialCard(file) {
+  const card = node("details", null, "source-card");
+  card.dataset.materialType = "file";
+  const heading = node("summary");
+  heading.append(node("span", file.filename), node("span", `原件 v${file.version}`, "pill"));
+  const download = node("a", "下载原件 →", "text-button");
+  download.href = `/api/files/${file.id}/download`;
+  const parseStatus = {ready: "可读取", not_requested: "未请求", unsupported: "当前不支持",
+    unavailable: "缺少可选解析依赖", failed: "解析失败"}[file.parse_status] || file.parse_status;
+  const parseDetails = file.parse_error ? ` · ${file.parse_error}` : "";
+  card.append(heading, node("p", `${file.size} 字节 · SHA-256 ${file.sha256}`, "source-meta"),
+    download, node("p", `本地解析：${parseStatus}${parseDetails}`, "hint"));
+  const parse = node("button", "提取或重新提取可定位片段", "secondary");
+  parse.type = "button";
+  parse.addEventListener("click", () => run(async () => {
+    await api(`/api/files/${file.id}/parse`, "POST", {});
+    if (state.current.id === file.case_id) await renderMaterials();
+  }, parse));
+  card.append(parse);
+  if (file.parse_status === "ready") {
+    const preview = node("button", "查看提取片段", "text-button");
+    preview.type = "button";
+    preview.addEventListener("click", () => run(async () => {
+      const metadata = await api(`/api/files/${file.id}`);
+      const text = metadata.anchors.map(anchor => `${locatorLabel(anchor.locator)}\n${anchor.text || "此处没有可提取的文字，请查看原件。"}`).join("\n\n");
+      card.append(node("pre", text || "此文件没有可提取的文字，请查看原件。"));
+      preview.remove();
+    }, preview));
+    card.append(preview);
   }
-  for (const [id, title] of logicalSources) pickOption(select, id, `${title} · 增加版本`);
-  if (!state.current.sources.length) empty(list, "加入案例相关的手册片段、工作记录或其他文字资料。");
+  return card;
+}
+function textMaterialCard(source) {
+  const card = node("details", null, "source-card");
+  card.dataset.materialType = "text";
+  const heading = node("summary");
+  heading.append(node("span", source.title), node("span", `文字 v${source.version}`, "pill"));
+  card.append(heading, node("div", `${stamp(source.created_at)} · SHA-256 ${source.sha256}`, "source-meta"), node("pre", source.text));
+  return card;
+}
+async function renderMaterials() {
+  const current = state.current;
+  const files = await api(`/api/cases/${encodeURIComponent(current.id)}/files`);
+  if (state.current !== current) return;
+  const list = $("#materials-list");
+  const items = [
+    ...files.map(file => ({createdAt: file.created_at, card: fileMaterialCard(file)})),
+    ...current.sources.map(source => ({createdAt: source.created_at, card: textMaterialCard(source)})),
+  ];
+  items.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  list.replaceChildren(...items.map(item => item.card));
+  if (!items.length) empty(list, "暂无资料。可以上传文件，也可以记录一段文字。");
+  $("#case-counts").textContent = `${items.length} 个资料版本 · ${current.turns.length} 轮记录`;
+
+  const fileParent = $("#file-parent");
+  const sourceParent = $("#source-parent");
+  const selectedFile = fileParent.value;
+  const selectedSource = sourceParent.value;
+  fileParent.replaceChildren();
+  sourceParent.replaceChildren();
+  pickOption(fileParent, "", "作为新文件");
+  pickOption(sourceParent, "", "作为新资料");
+  const logicalFiles = new Map(files.map(file => [file.file_id, file.filename]));
+  const logicalSources = new Map(current.sources.map(source => [source.source_id, source.title]));
+  for (const [id, name] of logicalFiles) pickOption(fileParent, id, `${name} · 增加版本`);
+  for (const [id, title] of logicalSources) pickOption(sourceParent, id, `${title} · 增加版本`);
+  if (logicalFiles.has(selectedFile)) fileParent.value = selectedFile;
+  if (logicalSources.has(selectedSource)) sourceParent.value = selectedSource;
 }
 function renderDecisions() {
   const list = $("#decision-list"); list.replaceChildren();
@@ -198,16 +255,17 @@ function renderEvidence() {
     const source = evidenceSource(item); const row = node("article", null, "evidence-row");
     const header = node("header"); const remove = node("button", "移除", "text-button"); remove.type = "button";
     remove.addEventListener("click", () => { state.evidence.splice(index, 1); state.dirty = true; renderEvidence(); updateReviewButtons(); });
-    header.append(node("span", `${fieldNames[item.field]} ← ${source.title || item.source_id}`), remove);
+    const slide = item.locator?.kind === "slide" ? ` · ${locatorLabel(item.locator)}` : "";
+    header.append(node("span", `${fieldNames[item.field]} ← ${source.title || item.source_id}${slide}`), remove);
     const detail = node("details"); detail.append(node("summary", item.start==null?"查看原件位置与核对信息":`查看来源原文 · 字符 ${item.start}–${item.end}`), node("pre", source.text || ""));
     row.append(header, node("blockquote", item.quote), detail);
     if(item.source_type==="file"){
       row.append(node("p",{pending_manual:"引用位置或文字尚待人工对照原件核对",position_checked:"位置已核对；表述含义仍需人工审核",human_checked:"已人工对照原件确认位置与引文"}[item.locator?.verification]||"请核对原件位置与引文","hint"));
       if(item.locator?.verification==="pending_manual"){
         const check=node("details");check.append(node("summary","对照原件确认位置与引文"));const download=node("a","下载原件核对 →","text-button");download.href=`/api/files/${item.source_id}/download`;check.append(download);
-        const locationInputs={};for(const [key,label] of Object.entries({page:"页码",paragraph:"段落序号（从0开始）",sheet:"工作表",range:"单元格范围",bbox:"区域：左、上、宽、高"})){if(item.locator[key]===undefined)continue;const wrapper=node("label",label);const input=node("input");input.value=Array.isArray(item.locator[key])?item.locator[key].join(","):item.locator[key];wrapper.append(input);locationInputs[key]=input;check.append(wrapper);}
+        const locationInputs={};for(const [key,label] of Object.entries({page:"页码",slide:"幻灯片页码",paragraph:"段落序号（从0开始）",sheet:"工作表",range:"单元格范围",bbox:"区域：左、上、宽、高"})){if(item.locator[key]===undefined)continue;const wrapper=node("label",label);const input=node("input");input.value=Array.isArray(item.locator[key])?item.locator[key].join(","):item.locator[key];wrapper.append(input);locationInputs[key]=input;check.append(wrapper);}
         const quoteLabel=node("label","对照原件核对或修正引文");const checkedQuote=node("textarea");checkedQuote.rows=3;checkedQuote.value=item.quote||"";quoteLabel.append(checkedQuote);check.append(quoteLabel);
-        const actorLabel=node("label","核对人");const actor=node("input");actorLabel.append(actor);const noteLabel=node("label","核对说明");const note=node("textarea");note.rows=2;note.placeholder="说明已核对原件中的位置与文字；若不一致请先修正引用";noteLabel.append(note);const confirm=node("button","保存原件核对记录","secondary");confirm.type="button";confirm.addEventListener("click",()=>run(async()=>{if(!actor.value.trim()||!note.value.trim())throw Error("请填写核对人及说明。");const locator={...item.locator};for(const [key,input]of Object.entries(locationInputs))locator[key]=key==="bbox"?input.value.split(",").map(Number):["page","paragraph"].includes(key)?Number(input.value):input.value;const quoteChanged=checkedQuote.value!==(item.quote||"");const result=await api(`/api/files/${item.source_id}/reference-checks`,"POST",{locator,quote:checkedQuote.value,start:quoteChanged?null:item.start??null,end:quoteChanged?null:item.end??null,actor:actor.value,note:note.value});state.evidence[index]={...item,...result,field:item.field};state.dirty=true;renderEvidence();updateReviewButtons();message("原件核对已记录，请保存为新修订后审核。");},confirm));check.append(actorLabel,noteLabel,confirm);row.append(check);
+        const actorLabel=node("label","核对人");const actor=node("input");actorLabel.append(actor);const noteLabel=node("label","核对说明");const note=node("textarea");note.rows=2;note.placeholder="说明已核对原件中的位置与文字；若不一致请先修正引用";noteLabel.append(note);const confirm=node("button","保存原件核对记录","secondary");confirm.type="button";confirm.addEventListener("click",()=>run(async()=>{if(!actor.value.trim()||!note.value.trim())throw Error("请填写核对人及说明。");const locator={...item.locator};for(const [key,input]of Object.entries(locationInputs))locator[key]=key==="bbox"?input.value.split(",").map(Number):["page","slide","paragraph"].includes(key)?Number(input.value):input.value;const quoteChanged=checkedQuote.value!==(item.quote||"");const result=await api(`/api/files/${item.source_id}/reference-checks`,"POST",{locator,quote:checkedQuote.value,start:quoteChanged?null:item.start??null,end:quoteChanged?null:item.end??null,actor:actor.value,note:note.value});state.evidence[index]={...item,...result,field:item.field};state.dirty=true;renderEvidence();updateReviewButtons();message("原件核对已记录，请保存为新修订后审核。");},confirm));check.append(actorLabel,noteLabel,confirm);row.append(check);
       }
     }
     if (item.hypothesis) row.append(node("p", `本轮包含系统假设：${item.hypothesis}，请核对经验归属。`, "hint"));
@@ -221,7 +279,7 @@ async function renderEvidenceSources() {
   for(const record of state.referenceCases){
     record.sources.forEach(source=>{const key=`document:${source.id}`;state.referenceSources.set(key,{source_type:"document",source_id:source.id,text:source.text});pickOption(select,key,`${record.title} · ${source.title} v${source.version}`);});
     record.turns.forEach(turn=>{const key=`turn:${turn.id}`;state.referenceSources.set(key,{source_type:"turn",source_id:turn.id,text:turn.answer});pickOption(select,key,`${record.title} · ${turn.speaker}访谈原话`);});
-    for(const file of await api(`/api/cases/${record.id}/files`)){if(file.parse_status!=="ready")continue;const metadata=await api(`/api/files/${file.id}`);for(const [index,anchor] of metadata.anchors.entries()){const key=`file:${file.id}:${index}`;state.referenceSources.set(key,{source_type:"file",source_id:file.id,text:anchor.text,width:anchor.width,height:anchor.height,locator:{...anchor.locator,parse_id:metadata.parse_id}});pickOption(select,key,`${file.filename} v${file.version} · ${JSON.stringify(anchor.locator)}`);}}
+    for(const file of await api(`/api/cases/${record.id}/files`)){if(file.parse_status!=="ready")continue;const metadata=await api(`/api/files/${file.id}`);for(const [index,anchor] of metadata.anchors.entries()){const key=`file:${file.id}:${index}`;state.referenceSources.set(key,{source_type:"file",source_id:file.id,text:anchor.text,width:anchor.width,height:anchor.height,locator:{...anchor.locator,parse_id:metadata.parse_id}});pickOption(select,key,`${file.filename} v${file.version} · ${locatorLabel(anchor.locator)}`);}}
   }
   for(const feedback of state.candidate.feedback||[]){const key=`feedback:${feedback.id}`;state.referenceSources.set(key,{source_type:"feedback",source_id:feedback.id,text:feedback.original});pickOption(select,key,`v${feedback.revision}反馈 · ${feedback.actor}`);}
   previewEvidenceSource();
@@ -274,17 +332,46 @@ $("#case-form").addEventListener("submit", event => {
   event.preventDefault(); if (!allowLeave()) return;
   run(async () => { const created = await api("/api/cases", "POST", data(event.target)); event.target.reset(); await refreshCases(); await openCase(created.id); setTab("materials"); message("案例已创建。"); }, event.target);
 });
-$("#source-file").addEventListener("change", event => run(async () => {
-  const file = event.target.files[0]; if (!file) return;
-  if (!/\.(txt|md)$/i.test(file.name)) throw new Error("请选择 UTF-8 编码的 TXT 或 Markdown 文件。");
-  if (file.size > 1000000) throw new Error("文件超过 1 MB，请先截取与案例相关的内容。");
-  const text = new TextDecoder("utf-8", { fatal: true }).decode(await file.arrayBuffer());
-  $("#source-text").value = text; $("#source-form").elements.title.value = file.name;
-}));
+function setMaterialMethod(formId) {
+  for (const button of $$("#material-methods button")) {
+    const controls = button.getAttribute("aria-controls");
+    button.setAttribute("aria-pressed", String(controls === formId));
+    document.getElementById(controls).hidden = controls !== formId;
+  }
+}
+for (const button of $$("#material-methods button")) {
+  button.addEventListener("click", () => setMaterialMethod(button.getAttribute("aria-controls")));
+}
 $("#source-form").addEventListener("submit", event => {
-  event.preventDefault(); run(async () => { const values = data(event.target); if (!values.source_id) delete values.source_id; await api(`/api/cases/${state.current.id}/sources`, "POST", values); event.target.reset(); await openCase(state.current.id, true); message("资料版本已保存。"); }, event.target);
+  event.preventDefault();
+  const caseId = state.current.id;
+  run(async () => {
+    const values = data(event.target);
+    if (!values.source_id) delete values.source_id;
+    await api(`/api/cases/${caseId}/sources`, "POST", values);
+    if (state.current.id === caseId) {
+      event.target.reset();
+      await openCase(caseId, true);
+    }
+    message("文字资料已保存。");
+  }, event.target);
 });
-$("#file-form").addEventListener("submit",event=>{event.preventDefault();run(async()=>{const values=new FormData(event.target);if(!values.get("file_id"))values.delete("file_id");const response=await fetch(`/api/cases/${state.current.id}/files`,{method:"POST",body:values});const result=await response.json();if(!response.ok)throw Error(result.error||"上传失败");event.target.reset();await renderFiles();message(result.parse_status==="ready"?"文件原件与可定位片段已保存。":"原件已保存；请查看本地解析状态，或使用支持该文件的模型适配器。");},event.target);});
+$("#file-form").addEventListener("submit", event => {
+  event.preventDefault();
+  const caseId = state.current.id;
+  run(async () => {
+    const values = new FormData(event.target);
+    if (!values.get("file_id")) values.delete("file_id");
+    const response = await fetch(`/api/cases/${caseId}/files`, {method: "POST", body: values});
+    const result = await response.json();
+    if (!response.ok) throw Error(result.error || "上传失败");
+    if (state.current.id === caseId) {
+      event.target.reset();
+      await renderMaterials();
+    }
+    message(result.parse_status === "ready" ? "文件原件与提取片段已保存。" : "文件原件已保存。可在资料列表查看本地解析状态。");
+  }, event.target);
+});
 $("#context-case").addEventListener("change",()=>run(loadContextCase));
 $("#context-form").addEventListener("submit",event=>{event.preventDefault();run(async()=>{const value=data(event.target);value.decision_id=value.decision_id||null;if(!state.contexts.some(c=>c.case_id===value.case_id&&c.decision_id===value.decision_id))state.contexts.push(value);state.dirty=true;await refreshReferenceCases();renderContexts();await renderEvidenceSources();updateReviewButtons();},event.target);});
 $("#decision-form").addEventListener("submit", event => {

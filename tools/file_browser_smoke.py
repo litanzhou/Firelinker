@@ -121,8 +121,17 @@ def main():
                     (args.output_dir / "observed-forms.json").write_text(json.dumps(observed, ensure_ascii=False, indent=2), encoding="utf-8")
                     assert any(f["id"] == "file-form" for f in observed)
                     expect(page.locator("#case-title")).to_have_text(case["title"])
-                    expect(page.locator("#file-list > .source-card")).to_have_count(2)
-                    page.get_by_text("上传 PDF、Word、Excel 或图片原件", exact=True).click()
+                    materials = page.locator("#materials-list > .source-card")
+                    file_materials = page.locator('#materials-list > [data-material-type="file"]')
+                    expect(file_materials).to_have_count(2)
+                    page.get_by_text("添加资料", exact=True).click()
+                    page.get_by_role("button", name="记录文字", exact=True).click()
+                    page.locator('#source-form [name="title"]').fill("合成测试交接说明")
+                    page.locator("#source-text").fill("合成测试：原件与文字保存在同一个案例中。")
+                    page.get_by_role("button", name="保存资料版本", exact=True).click()
+                    expect(materials).to_have_count(3)
+                    expect(materials.filter(has_text="合成测试交接说明")).to_have_attribute("data-material-type", "text")
+                    page.get_by_role("button", name="上传文件", exact=True).click()
                     uploaded = []
                     for index, (filename, mime_type, data) in enumerate(upload_payloads(), 3):
                         page.locator('#file-form [name="file"]').set_input_files({"name": filename, "mimeType": mime_type, "buffer": data})
@@ -134,8 +143,9 @@ def main():
                         assert metadata["parse_status"] == "ready", metadata
                         assert metadata["size"] == len(data)
                         uploaded.append(metadata)
-                        expect(page.locator("#file-list > .source-card")).to_have_count(index)
-                        card = page.locator("#file-list > .source-card").filter(has_text=filename)
+                        expect(file_materials).to_have_count(index)
+                        expect(materials).to_have_count(index + 1)
+                        card = file_materials.filter(has_text=filename)
                         card.locator("summary").click()
                         expect(card).to_contain_text("本地解析：可读取")
                         with page.expect_download() as pending_download:

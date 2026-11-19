@@ -76,6 +76,7 @@ function sourcePosition(cite) {
   const at = cite.locator || {};
   const parts = [];
   if (at.page != null) parts.push(`第 ${at.page} 页`);
+  if (at.slide != null) parts.push(`第 ${at.slide} 张幻灯片`);
   if (at.paragraph != null) parts.push(`第 ${at.paragraph + 1} 段`);
   if (at.table != null) parts.push(`表 ${at.table + 1} · 第 ${at.row + 1} 行第 ${at.column + 1} 列`);
   if (at.sheet) parts.push([at.sheet, at.range].filter(Boolean).join(" / "));

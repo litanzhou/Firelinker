@@ -2,6 +2,7 @@
 
 from io import BytesIO
 import json
+from zipfile import ZipFile
 
 import pytest
 
@@ -90,6 +91,80 @@ def test_docx_paragraph_and_table_quotes(ledger_case):
     assert validate(ledger, case_id, file, {"kind": "docx", "table": 0, "row": 0, "column": 0}, "表格")["quote"] == "表格"
     with pytest.raises(LedgerError, match="位置不存在"):
         validate(ledger, case_id, file, {"kind": "docx", "paragraph": 3}, "合成")
+
+
+def _pptx_example(*, external_slide=False, doctype=False):
+    p = "http://schemas.openxmlformats.org/presentationml/2006/main"
+    a = "http://schemas.openxmlformats.org/drawingml/2006/main"
+    r = "http://schemas.openxmlformats.org/officeDocument/2006/relationships"
+    references = f'<Relationship Id="late-file" Type="{r}/slide" Target="slides/slide2.xml"/>'
+    if external_slide:
+        references = (f'<Relationship Id="late-file" Type="{r}/slide" '
+                      'Target="https://example.invalid/slide.xml" TargetMode="External"/>')
+    buffer = BytesIO()
+    with ZipFile(buffer, "w") as container:
+        container.writestr("ppt/presentation.xml", f'<p:presentation xmlns:p="{p}" xmlns:r="{r}">'
+                           '<p:sldIdLst><p:sldId id="257" r:id="late-file"/>'
+                           '<p:sldId id="256" r:id="early-file"/></p:sldIdLst></p:presentation>')
+        container.writestr("ppt/_rels/presentation.xml.rels",
+                           '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'
+                           f'<Relationship Id="early-file" Type="{r}/slide" Target="/ppt/slides/slide1.xml"/>'
+                           f'{references}</Relationships>')
+        for part, text in (("slide1", "实际第二张"), ("slide2", "实际第一张")):
+            declaration = "<!DOCTYPE p:sld>" if doctype else ""
+            container.writestr(f"ppt/slides/{part}.xml", f'{declaration}<p:sld xmlns:p="{p}" xmlns:a="{a}">'
+                               f'<p:cSld><p:spTree><p:sp><p:txBody><a:p><a:r><a:t>{text}</a:t>'
+                               '</a:r><a:r><a:t>的两段字</a:t></a:r></a:p><a:p><a:r><a:t>另一段</a:t>'
+                               '</a:r></a:p></p:txBody></p:sp></p:spTree></p:cSld></p:sld>')
+    return buffer.getvalue()
+
+
+def test_pptx_uses_presentation_order_and_can_cite_a_slide(ledger_case):
+    ledger, case_id = ledger_case
+    original = _pptx_example()
+    file = ledger.add_file(case_id, "briefing.pptx", original)
+    first_slide = {"kind": "slide", "slide": 1}
+    second_slide = {"kind": "slide", "slide": 2}
+    assert file["parse_status"] == "ready"
+    assert file["anchors"] == [
+        {"locator": first_slide, "text": "实际第一张的两段字\n另一段"},
+        {"locator": second_slide, "text": "实际第二张的两段字\n另一段"},
+    ]
+    assert ledger.file_bytes(file["id"])[1] == original
+    read = ledger.read_file(file["id"], locator=second_slide)
+    assert read["anchors"][0]["locator"] == dict(second_slide, parse_id=file["parse_id"])
+    assert read["anchors"][0]["text"].startswith("实际第二张")
+    reference = validate(ledger, case_id, file, first_slide, "第一张的两段字")
+    assert reference["start"] == 2
+    assert reference["locator"] == dict(first_slide, parse_id=file["parse_id"], verification="position_checked")
+    assert ledger.parse_file(file["id"])["parse_id"] != file["parse_id"]
+    assert validate(ledger, case_id, file, reference["locator"], "第一张的两段字") == reference
+    with pytest.raises(LedgerError, match="位置不存在"):
+        validate(ledger, case_id, file, {"kind": "slide", "slide": 3}, "第三张")
+
+
+@pytest.mark.parametrize("options", [{"external_slide": True}, {"doctype": True}])
+def test_pptx_with_unreadable_slide_keeps_original_bytes(ledger_case, options):
+    ledger, case_id = ledger_case
+    original = _pptx_example(**options)
+    file = ledger.add_file(case_id, "unreadable.pptx", original)
+    assert file["parse_status"] == "failed" and not file["anchors"]
+    assert "PPTX" in file["parse_error"]
+    assert ledger.file_bytes(file["id"])[1] == original
+
+
+def test_legacy_ppt_is_downloadable_and_keeps_slide_references_pending(ledger_case):
+    ledger, case_id = ledger_case
+    original = b"\xd0\xcf\x11\xe0\xa1\xb1\x1a\xe1" + b"synthetic legacy original"
+    file = ledger.add_file(case_id, "legacy.ppt", original)
+    assert file["parse_status"] == "unsupported" and "PPTX" in file["parse_error"]
+    assert ledger.file_bytes(file["id"])[1] == original
+    attachment = ledger.read_file(file["id"], native=True)["attachment"]
+    assert attachment["mime_type"] == "application/vnd.ms-powerpoint"
+    reference = validate(ledger, case_id, file, {"kind": "slide", "slide": 3}, "待核对的字")
+    assert reference["locator"]["verification"] == "pending_manual"
+    checked = ledger.confirm_file_reference(file["id"], reference["locator"], "待核对的字", "审核员", "对照第 3 张原件")
+    assert checked["locator"]["verification"] == "human_checked"
 
 
 def test_spreadsheet_cells_formulas_and_ranges(ledger_case):

@@ -36,15 +36,17 @@ def main():
                 expect(page.locator("#case-title")).to_have_text("[浏览器合成测试] 保留叙述中的停顿")
 
                 raw = "合成原文：保留停顿，并在片段旁说明记忆的不确定性。📝\n仅用于已经获得授权的课堂材料。"
-                page.locator("#source-file").set_input_files({"name": "synthetic.md", "mimeType": "text/markdown", "buffer": raw.encode("utf-8")})
-                expect(page.locator("#source-text")).to_have_value(raw)
+                page.get_by_text("添加资料", exact=True).click()
+                page.get_by_role("button", name="记录文字", exact=True).click()
+                page.locator('#source-form [name="title"]').fill("合成文字资料")
+                page.locator("#source-text").fill(raw)
                 page.get_by_role("button", name="保存资料版本").click()
-                expect(page.locator("#source-list .source-card")).to_have_count(1)
+                expect(page.locator("#materials-list .source-card")).to_have_count(1)
                 page.locator("#source-parent").select_option(index=1)
-                page.locator('#source-form [name="title"]').fill("synthetic.md")
+                page.locator('#source-form [name="title"]').fill("合成文字资料")
                 page.locator("#source-text").fill(raw + "\n第二版：授权范围需要重新核对。")
                 page.get_by_role("button", name="保存资料版本").click()
-                expect(page.locator("#source-list .source-card")).to_have_count(2)
+                expect(page.locator("#materials-list .source-card")).to_have_count(2)
 
                 page.get_by_role("tab", name="判断与访谈").click()
                 page.get_by_text("添加一个判断", exact=True).click()
@@ -112,7 +114,7 @@ def main():
                 assert candidate["validation_status"] == "unvalidated"
                 assert any(e["source_type"] == "document" for e in candidate["evidence"])
                 browser.close()
-                print("Browser smoke passed: import/version/interview/revise/cite/review/search/reload/mobile; synthetic data only.")
+                print("Browser smoke passed: text material/version/interview/revise/cite/review/search/reload/mobile; synthetic data only.")
         finally:
             server.shutdown()
             thread.join(timeout=5)
