@@ -1,0 +1,31 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "experience-ledger"
+version = "1.0.0"
+description = "Firelinker: an open-source framework for capturing and reusing expert judgment"
+readme = "README.md"
+requires-python = ">=3.11"
+license = "MIT"
+license-files = ["LICENSE", "docs/THIRD_PARTY_NOTICES.md", "docs/FILE_DEPENDENCY_NOTICES.md"]
+dependencies = ["Flask>=3.1,<4", "pydantic>=2.10,<3", "langgraph>=1,<2", "langgraph-checkpoint-sqlite>=3,<4", "openai>=2.54,<3"]
+
+[project.optional-dependencies]
+dev = ["pytest>=8,<10", "build>=1.2,<2"]
+browser = ["playwright>=1.50,<2"]
+files = ["pypdf>=6,<7", "python-docx>=1.2,<2", "openpyxl>=3.1,<4", "Pillow>=12,<13"]
+
+[project.scripts]
+experience-ledger = "experience_ledger.__main__:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+experience_ledger = ["schema.sql", "migrations/*.sql", "prompts/*.md", "domains/*.json", "examples/*.json", "static/*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]

@@ -1,0 +1,149 @@
+{
+  "format_version": 1,
+  "synthetic": true,
+  "description": "纯合成的单次访谈规划情境。没有固定正确问句，语义质量由人评阅。",
+  "base_context": {
+    "scope": "仅整理当前目标中的具体经历，保留未知和原始出处。",
+    "domain": {"id": "general", "name": "通用合成情境", "interview_guidance": "一次一个重点，中立提问，保留未知。"},
+    "experience_fields": [
+      {"key": "statement", "label": "经验表述", "required": true},
+      {"key": "context", "label": "情境", "required": true},
+      {"key": "reasoning", "label": "依据", "required": true},
+      {"key": "boundaries", "label": "边界与未知", "required": true}
+    ],
+    "requested_action": "continue",
+    "limits": {"max_calls": 40, "max_turns": 30, "max_tokens": 60000, "steps_per_run": 5},
+    "context_epoch": 0,
+    "last_tool": null,
+    "quality_feedback": [],
+    "source_catalog": [],
+    "question_history": [],
+    "selection_note": "本评测只提出一个动作，不执行工具。所有人名、经历及资料均为合成。"
+  },
+  "scenarios": [
+    {
+      "id": "synthetic-answered-observation",
+      "title": "已说明的观察与尚未说明的边界",
+      "tags": ["coverage", "targetedness"],
+      "context": {
+        "goal": "留下接头排查的判断经验。",
+        "focus": {"case_id": "case-a", "decision_id": "decision-a"},
+        "cases": [{"id": "case-a", "title": "合成连接排查", "decisions": [{"id": "decision-a", "title": "先查连接"}]}],
+        "gaps": [{"key": "observation", "decision_id": "decision-a", "status": "covered", "label": "当时观察"}, {"key": "boundaries", "decision_id": "decision-a", "status": "open", "label": "适用边界"}],
+        "turns": [{"id": "turn-a", "question": "当时看到什么，做了什么？", "answer": "我看到接头松动，所以先检查连接。那次检查后设备恢复了。", "speaker": "合成专家甲"}]
+      },
+      "sources": [{"source_type": "turn", "source_id": "turn-a", "text": "我看到接头松动，所以先检查连接。那次检查后设备恢复了。", "case_id": "case-a", "decision_id": "decision-a"}],
+      "review_questions": [
+        {"dimension": "coverage", "question": "下一步是否利用已说明的观察和做法，避免机械重问？"},
+        {"dimension": "targetedness", "question": "继续追问时，是否针对当前仍不清楚且值得了解的信息？"}
+      ]
+    },
+    {
+      "id": "synthetic-perceptual-unknown",
+      "title": "无法言明的手感与未知理由",
+      "tags": ["faithfulness", "perceptual", "unknown"],
+      "context": {
+        "goal": "保存老师傅判断阻力异常的经验。",
+        "focus": {"case_id": "case-b", "decision_id": "decision-b"},
+        "cases": [{"id": "case-b", "title": "合成手感经历", "decisions": [{"id": "decision-b", "title": "停止继续拧动"}]}],
+        "gaps": [{"key": "rationale", "decision_id": "decision-b", "status": "open", "label": "当时依据"}],
+        "turns": [{"id": "turn-b", "question": "为什么停下？", "answer": "就是手感🔧不对，我说不出具体原因。当时也没比较别的方法。", "speaker": "合成专家乙"}]
+      },
+      "sources": [{"source_type": "turn", "source_id": "turn-b", "text": "就是手感🔧不对，我说不出具体原因。当时也没比较别的方法。", "case_id": "case-b", "decision_id": "decision-b"}],
+      "review_questions": [
+        {"dimension": "faithfulness", "question": "是否保留感知与未知的性质，避免补造技术理由、阈值或事后比较？"},
+        {"dimension": "neutrality", "question": "如继续追问，是否给专家描述感受或暂缓的空间？"}
+      ]
+    },
+    {
+      "id": "synthetic-neutral-question",
+      "title": "尚未确定原因时的中立追问",
+      "tags": ["neutrality", "hypothesis"],
+      "context": {
+        "goal": "了解专家当时如何选择记录方式。",
+        "focus": {"case_id": "case-c", "decision_id": "decision-c"},
+        "cases": [{"id": "case-c", "title": "合成编辑经历", "decisions": [{"id": "decision-c", "title": "保留一段原话"}]}],
+        "gaps": [{"key": "rationale", "decision_id": "decision-c", "status": "open", "label": "保留依据"}],
+        "turns": [{"id": "turn-c", "question": "那次你怎样处理这段话？", "answer": "我保留了原话，但还没有讲为什么。", "speaker": "合成编辑甲"}]
+      },
+      "sources": [{"source_type": "turn", "source_id": "turn-c", "text": "我保留了原话，但还没有讲为什么。", "case_id": "case-c", "decision_id": "decision-c"}],
+      "review_questions": [
+        {"dimension": "neutrality", "question": "问题是否让专家提供依据，而没有把保留真实感等解释预先塞进答案？"},
+        {"dimension": "hypothesis", "question": "若提出系统假设，是否明确标记并允许专家否定前提？"}
+      ]
+    },
+    {
+      "id": "synthetic-same-wording-new-case",
+      "title": "不同案例使用相同措辞",
+      "tags": ["repetition", "false_blocking", "multiple_cases"],
+      "context": {
+        "goal": "分别整理两个案例中选择处理办法的依据。",
+        "focus": {"case_id": "case-e", "decision_id": "decision-e"},
+        "cases": [{"id": "case-d", "title": "合成案例甲", "decisions": [{"id": "decision-d", "title": "先查连接"}]}, {"id": "case-e", "title": "合成案例乙", "decisions": [{"id": "decision-e", "title": "先查看记录"}]}],
+        "gaps": [{"key": "rationale", "decision_id": "decision-d", "status": "covered", "label": "甲的依据"}, {"key": "rationale", "decision_id": "decision-e", "status": "open", "label": "乙的依据"}],
+        "turns": [{"id": "turn-d", "question": "当时哪个观察让你作出这个选择？", "answer": "案例甲中，我看到接头松动。", "speaker": "合成专家甲"}, {"id": "turn-e", "question": "案例乙做了什么？", "answer": "案例乙中，我先查看记录。依据还没说明。", "speaker": "合成专家甲"}],
+        "question_history": [{"id": "question-d", "case_id": "case-d", "decision_id": "decision-d", "question": "当时哪个观察让你作出这个选择？"}]
+      },
+      "sources": [{"source_type": "turn", "source_id": "turn-d", "text": "案例甲中，我看到接头松动。", "case_id": "case-d", "decision_id": "decision-d"}, {"source_type": "turn", "source_id": "turn-e", "text": "案例乙中，我先查看记录。依据还没说明。", "case_id": "case-e", "decision_id": "decision-e"}],
+      "review_questions": [
+        {"dimension": "false_blocking", "question": "是否结合案例和判断区分重复，允许合理复用相同措辞？"},
+        {"dimension": "faithfulness", "question": "是否避免把案例甲的依据自动当成案例乙的依据？"}
+      ]
+    },
+    {
+      "id": "synthetic-finish-with-gaps",
+      "title": "专家希望暂存并保留缺口",
+      "tags": ["closure", "unknown"],
+      "context": {
+        "goal": "留下这次选择的经历，不强求补齐所有理由。",
+        "user_preference": "专家希望今天结束，暂存原话并保留未解释的条件。",
+        "focus": {"case_id": "case-f", "decision_id": "decision-f"},
+        "cases": [{"id": "case-f", "title": "合成暂存经历", "decisions": [{"id": "decision-f", "title": "保留现状"}]}],
+        "gaps": [{"key": "conditions", "decision_id": "decision-f", "status": "open", "required": true, "label": "适用条件"}],
+        "turns": [{"id": "turn-f", "question": "条件是什么？", "answer": "条件我记不清了，今天先到这里吧。", "speaker": "合成专家丙"}]
+      },
+      "sources": [{"source_type": "turn", "source_id": "turn-f", "text": "条件我记不清了，今天先到这里吧。", "case_id": "case-f", "decision_id": "decision-f"}],
+      "review_questions": [
+        {"dimension": "closure", "question": "是否尊重暂存或结束意愿，同时交代仍未解决的内容？"},
+        {"dimension": "faithfulness", "question": "是否避免把停止访谈表述为信息充分或经验已验证？"}
+      ]
+    },
+    {
+      "id": "synthetic-document-vs-experience",
+      "title": "资料规定与实际经历不同",
+      "tags": ["provenance", "faithfulness", "conflict"],
+      "context": {
+        "goal": "准确记录那次实际处理过程及其与资料的差异。",
+        "focus": {"case_id": "case-g", "decision_id": "decision-g"},
+        "cases": [{"id": "case-g", "title": "合成处理经历", "decisions": [{"id": "decision-g", "title": "先查记录"}]}],
+        "gaps": [{"key": "difference", "decision_id": "decision-g", "status": "conflict", "label": "资料与经历差异"}],
+        "turns": [{"id": "turn-g", "question": "那次先做什么？", "answer": "那次我先查看记录，没有先检查连接。为什么这样选还没说。", "speaker": "合成专家丁"}],
+        "source_catalog": [{"id": "document-g-v1", "source_type": "document", "title": "合成工作指引", "version": 1}],
+        "last_tool": {"kind": "read_source", "results": [{"source_id": "document-g-v1", "source_type": "document", "start": 0, "text": "合成工作指引规定：先检查连接，再查看记录。"}]}
+      },
+      "sources": [{"source_type": "turn", "source_id": "turn-g", "text": "那次我先查看记录，没有先检查连接。为什么这样选还没说。", "case_id": "case-g", "decision_id": "decision-g"}, {"source_type": "document", "source_id": "document-g-v1", "text": "合成工作指引规定：先检查连接，再查看记录。", "case_id": "case-g", "decision_id": null}],
+      "review_questions": [
+        {"dimension": "provenance", "question": "是否清楚区分资料规定、专家实际经历和系统解释？"},
+        {"dimension": "neutrality", "question": "是否询问差异及当时背景，而没有强行把专家经历改写为符合资料？"}
+      ]
+    },
+    {
+      "id": "synthetic-expert-correction",
+      "title": "专家纠正原回答与问题前提",
+      "tags": ["correction", "faithfulness", "neutrality"],
+      "context": {
+        "goal": "保留纠正前后的原话，厘清实际发生的动作。",
+        "focus": {"case_id": "case-h", "decision_id": "decision-h"},
+        "cases": [{"id": "case-h", "title": "合成纠正经历", "decisions": [{"id": "decision-h", "title": "查看状态"}]}],
+        "gaps": [{"key": "actual_action", "decision_id": "decision-h", "status": "conflict", "label": "当时实际动作"}],
+        "turns": [{"id": "turn-h-old", "question": "那次怎样做？", "answer": "我记得先停下来了。", "speaker": "合成专家戊"}, {"id": "turn-h-fix", "question": "主动纠正", "answer": "刚才记错了，那次没有停下来，只查看了状态。", "speaker": "合成专家戊", "correction_of": "turn-h-old"}],
+        "quality_feedback": [{"question_id": "question-h", "kind": "wrong_premise", "note": "不要继续假定我已经停下来了。", "actor": "合成专家戊"}]
+      },
+      "sources": [{"source_type": "turn", "source_id": "turn-h-old", "text": "我记得先停下来了。", "case_id": "case-h", "decision_id": "decision-h"}, {"source_type": "turn", "source_id": "turn-h-fix", "text": "刚才记错了，那次没有停下来，只查看了状态。", "case_id": "case-h", "decision_id": "decision-h"}],
+      "review_questions": [
+        {"dimension": "correction", "question": "下一步是否考虑最新纠正及其与旧回答的关系？"},
+        {"dimension": "neutrality", "question": "是否停止沿用被专家否定的问题前提，同时保留旧原话记录？"}
+      ]
+    }
+  ]
+}

@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>传火 Firelinker · 专家经验工作台</title>
+  <link rel="icon" href="/static/firelinker-flame.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/static/style.css">
+  <link rel="stylesheet" href="/static/desktop.css" media="(min-width: 900px)">
+  <script defer src="/static/app.js"></script>
+</head>
+<body>
+  <header class="masthead">
+    <a class="brand" href="/" aria-label="传火首页"><img class="brand-symbol" src="/static/firelinker-handoff.png" width="48" height="48" alt=""><span>传火<small>FIRELINKER</small></span></a>
+    <nav aria-label="主导航"><a href="/interviews" class="nav">智能访谈</a><a href="/" class="nav active" aria-current="page">案例工作台</a><a href="/knowledge" class="nav">经验库</a></nav>
+    <div class="workspace-tools"><span class="local-label">本地工作区</span><a class="settings-link" href="/settings">模型设置</a></div>
+  </header>
+  <div id="message" role="status" aria-live="polite" hidden></div>
+  <main id="cases-view" class="workspace">
+    <aside class="case-sidebar">
+      <div class="sidebar-title"><h1>案例列表</h1><button id="new-case" class="icon-button" aria-label="新建案例">＋</button></div>
+      <div id="case-list" class="case-list"></div>
+      <details id="new-case-details" open>
+        <summary>新建案例</summary>
+        <form id="case-form">
+          <label>所属领域<select id="case-domain" name="domain_id" required></select></label>
+          <p id="domain-description" class="hint"></p>
+          <label>案例名称<input name="title" required maxlength="300" placeholder="例如，水泵异响排查"></label>
+          <label>案例背景<textarea name="context" required rows="3" placeholder="工作对象、目标与当时的情况"></textarea></label>
+          <button class="primary" type="submit">创建案例</button>
+        </form>
+      </details>
+    </aside>
+    <section class="case-main">
+      <div id="empty-case" class="empty-state"><h2>尚未选择案例</h2><p>从左侧选择或新建一个案例。</p></div>
+      <div id="case-detail" hidden>
+        <div class="case-heading"><div><div id="case-domain-label" class="section-label"></div><h1 id="case-title"></h1></div><span id="case-counts" class="pill"></span></div>
+        <p id="case-context" class="case-context"></p>
+        <div class="steps" role="tablist" aria-label="案例内容"><button data-tab="materials" class="step active" role="tab" aria-selected="true">案例资料</button><button data-tab="interview" class="step" role="tab" aria-selected="false">判断与访谈</button><button data-tab="review" class="step" role="tab" aria-selected="false">经验审核</button></div>
+        <section id="tab-materials" class="tab-panel" role="tabpanel">
+          <div class="panel-heading"><h2>资料与版本</h2><span class="hint">引用保留原文的版本号。</span></div>
+          <div id="source-list"></div>
+          <div id="file-list"></div>
+          <details class="editor-block"><summary>上传 PDF、Word、Excel 或图片原件</summary><form id="file-form"><label>原始文件<input name="file" type="file" required accept=".txt,.md,.pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg,.webp"></label><label>文件版本归属<select name="file_id" id="file-parent"><option value="">作为新文件</option></select></label><p class="hint">能否提取文字取决于本地解析工具。旧版 DOC、XLS 仅保存原件。模型能读取的格式取决于当前配置。</p><button type="submit" class="primary">保存文件原件</button></form></details>
+          <details class="editor-block" open><summary>加入资料</summary>
+            <form id="source-form">
+              <div class="two-columns"><label>资料名称<input name="title" required placeholder="例如，现场检查记录"></label><label>版本归属<select name="source_id" id="source-parent"><option value="">作为新资料</option></select></label></div>
+              <label>导入 UTF-8 文件<input id="source-file" type="file" accept=".txt,.md,text/plain,text/markdown"></label>
+              <label>资料原文<textarea name="text" id="source-text" required rows="7" placeholder="粘贴文字，或导入 TXT / Markdown 文件"></textarea></label>
+              <button class="primary" type="submit">保存资料版本</button>
+            </form>
+          </details>
+        </section>
+        <section id="tab-interview" class="tab-panel" role="tabpanel" hidden>
+          <div class="panel-heading"><h2>判断与待问问题</h2><span class="hint">每次追问单独保存。</span></div>
+          <div id="decision-list"></div>
+          <details class="editor-block"><summary>添加一个判断</summary><form id="decision-form"><label>判断名称<input name="title" required placeholder="当时做出了什么选择？"></label><label>判断背景<textarea name="description" required rows="3" placeholder="选择前的观察、约束或待解决的问题"></textarea></label><button type="submit" class="primary">添加判断与追问</button></form></details>
+          <div id="interview-detail" hidden>
+            <div class="interview-heading"><h3 id="decision-title"></h3><button id="draft-candidate" class="secondary">整理候选经验</button></div>
+            <p id="decision-description" class="muted"></p>
+            <div class="interview-columns"><div id="gap-list" class="gap-list"></div><div><form id="turn-form"><input type="hidden" name="gap_id"><label>本轮问题<textarea id="turn-question" name="question" rows="3" required></textarea></label><label>专家署名<input name="speaker" required placeholder="姓名或称呼"></label><label>专家回答<textarea name="answer" required rows="6" placeholder="填写专家原话，记不清的地方可以注明"></textarea></label><button type="submit" class="primary">保存这一轮</button></form></div></div>
+            <h3 class="history-title">逐轮记录</h3><div id="turn-list"></div>
+          </div>
+        </section>
+        <section id="tab-review" class="tab-panel" role="tabpanel" hidden>
+          <div class="panel-heading"><h2>候选经验</h2></div>
+          <div id="candidate-list"></div>
+          <div id="candidate-detail" hidden>
+            <div class="review-heading"><h3 id="candidate-heading"></h3><span id="candidate-status" class="pill"></span></div>
+            <p id="candidate-version-note" class="hint"></p><p><a id="experience-detail-link" class="text-button" href="/">查看确认版、关联与使用反馈 →</a></p>
+            <details class="editor-block"><summary>本次修订关联的案例与判断</summary><div id="revision-contexts"></div><form id="context-form"><label>添加案例<select id="context-case" name="case_id"></select></label><label>判断<select id="context-decision" name="decision_id"><option value="">整个案例</option></select></label><button class="secondary" type="submit">加入本次修订范围</button></form><p class="hint">修改后的关联范围随新版本保存。</p></details>
+            <form id="candidate-form">
+              <div class="two-columns"><label>经验名称<input name="title" required></label><label>经验类型<select name="kind"><option value="conditional">有条件的经验</option><option value="perceptual">感知线索</option><option value="case_note">个案记录</option></select></label></div>
+              <div id="dynamic-content" class="dynamic-content" hidden></div>
+              <label>经验内容<textarea name="statement" rows="3"></textarea></label><label>适用条件<textarea name="scope" rows="3"></textarea></label><label>判断理由<textarea name="rationale" rows="3"></textarea></label><label>例外与边界<textarea name="exceptions" rows="3"></textarea></label>
+              <div class="subheading"><h3>引用出处</h3></div>
+              <div id="evidence-list"></div>
+              <details class="evidence-add"><summary>补充资料或访谈引文</summary><div class="two-columns"><label>支持字段<select id="evidence-field"><option value="statement">经验内容</option><option value="scope">适用条件</option><option value="rationale">判断理由</option><option value="exceptions">例外与边界</option></select></label><label>引文来源<select id="evidence-source"></select></label></div><pre id="evidence-source-preview"></pre><img id="evidence-image" alt="所选图片原件" hidden><label id="evidence-region-label" hidden>引用区域：左、上、宽、高<input id="evidence-region" placeholder="用逗号分隔；图片用像素，PDF用页面坐标"></label><label>逐字引文<textarea id="evidence-quote" rows="3" placeholder="从上方来源中选择并复制原文；纯图片引用可留空，需核对引用区域"></textarea></label><button id="add-evidence" type="button" class="secondary">添加到本次修订</button></details>
+              <label>修订人<input name="actor" placeholder="保存修改时填写"></label><button type="submit" class="secondary">保存为新修订</button><p class="hint">新版本需重新审核。已有确认版仍可在经验库查阅。</p>
+            </form>
+            <section class="review-box"><h3>人工确认</h3><p>请核对经验内容、适用条件和引文。“确认并入库”表示表述符合原话。案例验证另行记录。</p><form id="review-form"><label>审核人<input name="reviewer" required></label><label>审核意见<textarea name="note" required rows="2" placeholder="记录核对结论或驳回原因"></textarea></label><div class="button-row"><button id="approve" type="submit" value="approve" class="primary">确认并入库</button><button id="reject" type="submit" value="reject" class="secondary">驳回候选</button></div></form><p id="review-state" class="hint"></p></section>
+            <details class="editor-block"><summary>修订与审核历史</summary><div id="revision-history"></div></details>
+          </div>
+        </section>
+        <details class="audit-section"><summary>案例活动记录</summary><div id="event-list"></div></details>
+      </div>
+    </section>
+  </main>
+</body>
+</html>

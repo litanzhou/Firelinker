@@ -1,0 +1,19 @@
+{
+  "id": "general", "name": "通用经验访谈", "version": "1.1",
+  "description": "先理解目标和已有材料，随访谈建立术语与知识缺口。",
+  "object_label": "工作对象",
+  "prompts": {
+    "action": "针对“{decision}”，当时你作出了什么选择？",
+    "scope": "这个判断适用于哪些情境？",
+    "rationale": "当时哪些观察和依据支持了这个判断？",
+    "exceptions": "哪些情况下需要改变这个做法？",
+    "alternatives": "当时是否考虑过其他做法？"
+  },
+  "interview_guidance": "先理解目标和已有材料，再选择读取、整理或提问。已有内容直接利用；没有材料时先收集用户输入的文字，再逐步识别判断。允许感知线索、个案和探索性经验；未知如实保留。",
+  "experience_fields": [
+    {"key": "statement", "label": "经验表述", "required": true},
+    {"key": "context", "label": "情境与观察", "required": true},
+    {"key": "reasoning", "label": "判断依据", "required": true},
+    {"key": "boundaries", "label": "适用边界与未知", "required": true}
+  ]
+}

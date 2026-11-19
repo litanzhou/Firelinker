@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>经验库 · 传火 Firelinker</title>
+  <link rel="icon" href="/static/firelinker-flame.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/static/style.css">
+  <link rel="stylesheet" href="/static/knowledge.css">
+  <link rel="stylesheet" href="/static/desktop.css" media="(min-width: 900px)">
+  <script defer src="/static/knowledge.js"></script>
+</head>
+<body>
+  <header class="masthead">
+    <a class="brand" href="/" aria-label="传火首页"><img class="brand-symbol" src="/static/firelinker-handoff.png" width="48" height="48" alt=""><span>传火<small>FIRELINKER</small></span></a>
+    <nav aria-label="主导航"><a class="nav" href="/interviews">智能访谈</a><a class="nav" href="/">案例工作台</a><a href="/knowledge" class="nav active" aria-current="page">经验库</a></nav>
+    <div class="workspace-tools"><span class="local-label">本地工作区</span><a class="settings-link" href="/settings">模型设置</a></div>
+  </header>
+  <main class="library">
+    <div class="library-heading">
+      <h1>经验库</h1>
+      <form id="search-form" action="/knowledge" method="get" role="search">
+        <label>关键词<input type="search" name="q" maxlength="1000" placeholder="搜索工作对象、现象或适用条件"></label>
+        <label>领域<select name="domain_id" id="search-domain"><option value="">全部领域</option></select></label>
+        <button type="submit" class="primary">查询</button>
+      </form>
+    </div>
+    <p id="library-message" role="status">正在读取已确认经验…</p>
+    <div class="library-columns" id="workspace" hidden>
+      <section class="results" aria-labelledby="result-heading">
+        <h2 id="result-heading">检索结果 <span id="result-count"></span></h2>
+        <div id="knowledge-list"></div>
+      </section>
+      <article id="knowledge-reader" aria-label="选中经验"></article>
+    </div>
+  </main>
+</body>
+</html>

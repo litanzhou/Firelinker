@@ -1,0 +1,41 @@
+name: tests
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        python-version: ['3.11', '3.13']
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install
+        run: python -m pip install -c requirements-lock.txt -e ".[dev,files]"
+      - name: Test
+        run: python -m pytest -q
+      - name: Build wheel
+        run: python -m build --wheel
+      - name: Install browser test dependencies
+        if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.13'
+        run: |
+          python -m pip install -e ".[browser]"
+          python -m playwright install --with-deps chromium
+      - name: Browser workflow
+        if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.13'
+        run: |
+          python tools/browser_smoke.py
+          python tools/interview_browser_smoke.py
+          python tools/lifecycle_browser_smoke.py
+          python tools/file_browser_smoke.py
+          python tools/model_settings_browser_smoke.py

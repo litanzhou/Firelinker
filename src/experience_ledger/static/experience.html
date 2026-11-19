@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="zh-CN">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>经验与反馈 · 传火 Firelinker</title><link rel="icon" href="/static/firelinker-flame.svg" type="image/svg+xml"><link rel="stylesheet" href="/static/style.css"><link rel="stylesheet" href="/static/experience.css"><link rel="stylesheet" href="/static/desktop.css" media="(min-width: 900px)">
+  <script defer src="/static/experience.js"></script></head>
+<body>
+<header class="masthead"><a class="brand" href="/" aria-label="传火首页"><img class="brand-symbol" src="/static/firelinker-handoff.png" width="48" height="48" alt=""><span>传火<small>FIRELINKER</small></span></a><nav aria-label="主导航"><a class="nav" href="/interviews">智能访谈</a><a class="nav" href="/">案例工作台</a><a class="nav active" href="/knowledge">经验库</a></nav><div class="workspace-tools"><span class="local-label">本地工作区</span><a class="settings-link" href="/settings">模型设置</a></div></header>
+<div id="message" role="status" aria-live="polite" hidden></div>
+<main class="experience-workspace">
+ <div class="case-heading"><h1 id="experience-title">正在读取经验…</h1><span id="version-state" class="pill"></span></div>
+ <p id="version-notice" class="session-notice"></p>
+ <div class="version-toolbar"><label>查看修订<select id="revision-select" aria-label="查看修订"></select></label><a id="edit-link" class="secondary" href="/">编辑与审核最新草稿 →</a></div>
+ <div id="experience-content" class="experience-content"></div>
+ <details class="editor-block"><summary>本版原话与资料出处</summary><div id="experience-evidence"></div></details>
+ <details class="editor-block" id="withdraw-panel"><summary>撤下当前确认版</summary><p class="hint">撤下后，经验库将隐藏这条经验。历史版本和审核记录仍可查阅。</p><form id="withdraw-form"><label>操作人<input name="actor" required></label><label>撤下原因<textarea name="note" required rows="2"></textarea></label><button class="secondary" type="submit">撤下当前确认版</button></form></details>
+
+ <section class="experience-section"><h2>相关经验与分歧</h2><div id="relation-list"></div>
+  <details class="editor-block" id="compare-panel"><summary>查找相关经验并比较</summary>
+   <form id="related-search"><label>相关关键词<input name="q" placeholder="工作对象、观察或判断"></label><button type="submit" class="secondary">查找相关经验</button></form><div id="related-results"></div>
+   <div id="comparison" hidden><h3 id="comparison-title"></h3><div class="comparison-evidence"><div><strong>当前经验</strong><div id="left-evidence"></div></div><div><strong>对照经验</strong><div id="right-evidence"></div></div></div>
+    <form id="relation-form"><label>关系<select name="kind" required><option value="">请选择关系</option><option value="duplicate">表述及条件相同</option><option value="supplement">补充条件、理由或例外</option><option value="conflict">说法存在差异，待核对条件</option></select></label><label>比较时的目标与条件<textarea name="conditions" required rows="2"></textarea></label><label>比较理由<textarea name="reason" required rows="3"></textarea></label><label>提出人<input name="actor" required></label><div class="button-row"><button class="primary" type="submit">保存关联建议</button><button class="secondary" id="ai-compare" type="button">请当前模型比较</button></div><p class="hint">手动比较时，请为两条经验各选一处引文。模型比较会调用一次模型，建议需人工确认。</p></form>
+   </div>
+  </details>
+ </section>
+
+ <section class="experience-section"><h2>使用反馈</h2><div id="feedback-list"></div>
+  <details class="editor-block" id="feedback-panel"><summary>填写本版反馈</summary><form id="feedback-form"><div class="two-columns"><label>反馈人<input name="actor" required></label><label>是否实际采用<select name="actual_used"><option value="true">实际采用</option><option value="false">仅参考，未采用</option><option value="unknown" selected>尚不明确</option></select></label></div><label>当时条件<textarea name="conditions" rows="2" placeholder="例如，当时的设备或工作环境"></textarea></label><label>实际做法及与经验的差异<textarea name="actions" rows="2"></textarea></label><label>观察到的结果<textarea name="outcome" rows="2" placeholder="如尚无结果，可注明“待观察”"></textarea></label><label>原始反馈<textarea name="original" required rows="4"></textarea></label><button type="submit" class="primary">保存本版反馈</button></form></details>
+ </section>
+</main>
+</body></html>

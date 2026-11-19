@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="zh-CN">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>智能访谈 · 传火 Firelinker</title><link rel="icon" href="/static/firelinker-flame.svg" type="image/svg+xml"><link rel="stylesheet" href="/static/style.css"><link rel="stylesheet" href="/static/interviews.css"><link rel="stylesheet" href="/static/desktop.css" media="(min-width: 900px)">
+  <script defer src="/static/interviews.js"></script></head>
+<body>
+<header class="masthead"><a class="brand" href="/" aria-label="传火首页"><img class="brand-symbol" src="/static/firelinker-handoff.png" width="48" height="48" alt=""><span>传火<small>FIRELINKER</small></span></a><nav aria-label="主导航"><a class="nav active" href="/interviews">智能访谈</a><a class="nav" href="/">案例工作台</a><a class="nav" href="/knowledge">经验库</a></nav><div class="workspace-tools"><span class="local-label">本地工作区</span><a class="settings-link" href="/settings">模型设置</a></div></header>
+<div id="message" role="status" aria-live="polite" hidden></div>
+<main class="interview-workspace">
+ <aside class="interview-sidebar">
+  <div class="sidebar-title"><h2>访谈列表</h2><button id="new-interview" class="icon-button" aria-label="新建访谈" title="新建访谈">＋</button></div>
+  <div id="session-list"></div>
+  <details class="model-note">
+   <summary><strong id="model-label">模型配置</strong></summary>
+   <p id="model-help" class="hint"></p><a href="/settings" class="text-button">配置模型 →</a>
+   <button type="button" id="probe-model" class="secondary">测试模型连接</button>
+   <p class="hint">测试会向模型发送一条示例消息。</p>
+  </details>
+ </aside>
+ <section class="interview-main">
+  <section id="welcome" class="interview-start" aria-labelledby="start-title">
+   <header class="start-cover"><h1 id="start-title">新访谈</h1><img class="start-brand-art" src="/static/firelinker-handoff.png" width="108" height="108" alt="" aria-hidden="true"></header>
+   <form id="start-interview">
+    <label class="topic-field">你希望整理哪方面的经验？
+     <textarea name="goal" required maxlength="4000" rows="3" placeholder="例如，水泵出现异响时，先检查什么？"></textarea>
+    </label>
+    <div class="two-columns">
+     <label>领域<select name="domain_id" id="domain-select"></select></label>
+     <label>关联已有案例（可选）<select name="case_id" id="start-case"><option value="">暂不关联案例</option></select></label>
+    </div>
+    <div class="start-actions"><p id="start-model-note" class="hint" hidden>尚未配置模型。<a href="/settings">配置模型</a></p><button class="primary" type="submit">开始访谈</button></div>
+   </form>
+  </section>
+  <div id="session-detail" hidden>
+   <div class="case-heading"><div><div class="section-label" id="session-domain"></div><h1 id="session-goal"></h1></div><span class="pill" id="session-status"></span></div>
+   <p id="session-notice" class="session-notice" role="status"></p>
+   <div class="button-row session-controls"><button id="continue-interview" class="secondary">继续访谈</button><button id="pause-interview" class="secondary">暂停</button><button id="draft-interview" class="secondary">整理候选经验</button><button id="close-interview" class="text-button">结束本次访谈</button><a id="case-link" class="text-button" href="/">资料与案例记录 →</a></div>
+
+   <div class="conversation-grid"><div>
+    <section id="current-question" class="question-panel" hidden><div class="section-label" id="question-label">当前问题</div><h2 id="question-text"></h2><details class="question-reason"><summary>为什么问这个问题</summary><p id="question-reason"></p><p id="question-expected" class="muted"></p><p id="question-hypothesis" class="hint"></p><p id="question-warnings" class="hint"></p></details><form id="answer-interview"><label>发言人<input name="speaker" required maxlength="200" placeholder="姓名或称呼"></label><label><span id="answer-label">你的回答</span><textarea name="answer" required maxlength="20000" rows="6" placeholder="说说当时怎么做的。记不清的地方可以注明。"></textarea></label><div class="button-row"><button type="submit" class="primary">保存回答并继续</button><button type="button" id="skip-question" class="text-button">暂缓这个问题</button></div></form><details class="question-reason" id="question-feedback"><summary>这个问题需要调整</summary><form id="question-feedback-form"><label>问题所在<select name="kind"><option value="wrong_premise">问题前提不成立</option><option value="leading">带有诱导</option><option value="repeated">已经说过</option><option value="irrelevant">偏离目标</option><option value="other">其他</option></select></label><label>说明<textarea name="note" required rows="2"></textarea></label><label>署名<input name="actor" required></label><button class="secondary" type="submit">保存纠正并暂停此问题</button></form></details></section>
+    <details class="editor-block" id="supplement-box"><summary>主动讲述、补充或纠正原话</summary><form id="supplement-form"><label>记录类型<select name="correction_of" id="correction-of"><option value="">补充新内容</option></select></label><label>发言人<input name="speaker" required></label><label>原始内容<textarea name="answer" required maxlength="20000" rows="4" placeholder="填写要补充或更正的原话"></textarea></label><button class="secondary" type="submit">保存原话</button></form></details>
+    <section id="review-ready" class="review-box" hidden><h3>候选经验</h3><p>审核时请核对原话和适用条件。</p><div id="candidate-links"></div></section>
+    <h3 class="history-title">访谈记录</h3><div id="conversation"></div>
+   </div><aside class="interview-context"><section class="focus-panel"><h3 id="focus-heading">尚未选择案例</h3><div id="focus-proposals"></div><details><summary>选择当前案例与判断</summary><form id="focus-form"><div class="two-columns"><label>已关联案例<select id="focus-case" name="case_id"></select></label><label>判断<select id="focus-decision" name="decision_id"></select></label></div><label>切换说明<input name="note" placeholder="切换原因（选填）"></label><button class="secondary" type="submit">切换到此关注点</button></form></details><details><summary>关联其他案例</summary><form id="link-case-form"><label>已有案例<select id="link-case-select" name="case_id"></select></label><button class="secondary" type="submit">关联到本次访谈</button><a href="/" class="text-button">去案例工作台新建案例 →</a></form></details></section><h3>访谈要点</h3><p class="hint">标为“已有依据”的条目仍需人工核对。</p><div id="session-gaps"></div><details class="audit-section"><summary>模型与工具记录</summary><div id="action-history"></div></details></aside></div>
+  </div>
+ </section>
+</main>
+</body></html>

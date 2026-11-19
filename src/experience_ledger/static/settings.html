@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>模型设置 · 传火 Firelinker</title>
+  <link rel="icon" href="/static/firelinker-flame.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/static/style.css">
+  <link rel="stylesheet" href="/static/settings.css">
+  <link rel="stylesheet" href="/static/desktop.css" media="(min-width: 900px)">
+  <script defer src="/static/settings.js"></script>
+</head>
+<body>
+  <header class="masthead">
+    <a class="brand" href="/" aria-label="传火首页"><img class="brand-symbol" src="/static/firelinker-handoff.png" width="48" height="48" alt=""><span>传火<small>FIRELINKER</small></span></a>
+    <nav aria-label="主导航"><a class="nav" href="/interviews">智能访谈</a><a class="nav" href="/">案例工作台</a><a class="nav" href="/knowledge">经验库</a></nav>
+    <div class="workspace-tools"><span class="local-label">本地工作区</span><a class="settings-link active" href="/settings" aria-current="page">模型设置</a></div>
+  </header>
+  <main class="settings-workspace">
+    <div class="settings-heading"><h1>模型设置</h1><span id="connection-state" class="pill">正在读取…</span></div>
+    <p id="settings-message" role="status" aria-live="polite" hidden></p>
+    <form id="connection-form" autocomplete="off">
+      <fieldset id="connection-fields" disabled>
+        <div class="two-columns">
+          <label>服务商<select name="provider" id="provider">
+            <option value="compatible">自定义 / OpenAI 兼容接口</option>
+            <option value="openai">OpenAI</option>
+            <option value="deepseek">DeepSeek</option>
+          </select></label>
+          <label>API 地址<input type="url" name="base_url" id="base-url" required maxlength="2000" placeholder="https://你的服务地址/v1" spellcheck="false" autocapitalize="off"></label>
+        </div>
+        <label>模型名称<input name="model" required maxlength="300" placeholder="填写服务商提供的模型 ID" spellcheck="false" autocapitalize="off"></label>
+        <div class="key-field">
+          <label>API Key<input type="password" name="api_key" id="api-key" maxlength="8192" autocomplete="new-password" spellcheck="false"></label>
+          <p id="key-hint" class="hint"></p>
+          <label id="clear-key-label" class="checkbox-label" hidden><input type="checkbox" id="clear-key">清除已设置的 Key</label>
+        </div>
+        <details class="advanced-settings">
+          <summary>高级设置</summary>
+          <label>接口协议<select name="protocol">
+            <option value="chat_completions">Chat Completions</option>
+            <option value="responses">Responses</option>
+          </select></label>
+          <label>原生文件输入格式<input name="input_types" placeholder="text,pdf,docx,xlsx,png,jpeg,webp" spellcheck="false"></label>
+          <p class="hint">默认只发送文本。直接向模型发送文件需选择 Responses，并填写该模型实际支持的格式，用逗号分隔。</p>
+          <div class="two-columns">
+            <label>上下文预算（字符）<input type="number" name="context_chars" min="1000" max="2000000" step="1" required></label>
+            <label>最大输出 token<input type="number" name="max_output_tokens" min="100" max="32000" step="1" required></label>
+          </div>
+          <label>每次请求附件上限（MB）<input type="number" name="attachment_mb" min="0.000001" max="50" step="any" required></label>
+        </details>
+        <div class="settings-actions"><button type="button" id="test-connection" class="secondary">测试连接</button><button type="submit" class="primary">保存并应用</button></div>
+        <p class="hint">测试连接会发送一条示例消息。保存后，新请求使用此配置。</p>
+      </fieldset>
+    </form>
+    <div class="settings-storage"><p>配置和 API Key 保存在本机工作区的配置文件中，界面隐藏 Key。</p><a href="/interviews">返回访谈 →</a></div>
+  </main>
+</body>
+</html>
